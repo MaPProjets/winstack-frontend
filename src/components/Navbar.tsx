@@ -34,8 +34,16 @@ export const Navbar = () => {
           <span className="font-semibold text-foreground">WinStack</span>
         </Link>
 
-        {/* Auth Section */}
+        {/* Navigation & Auth Section */}
         <div className="flex items-center gap-4">
+          {/* Lien Tarifs */}
+          <Link
+            to="/pricing"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Tarifs
+          </Link>
+
           {/* API Status */}
           <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground">
             <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
@@ -44,29 +52,29 @@ export const Navbar = () => {
 
           {/* User Auth */}
           {user ? (
-        <div className="flex items-center gap-3">
-          <Link 
-      to="/history" 
-      className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-    >
-      Historique
-    </Link>
-    <span className="text-sm text-muted-foreground hidden md:block">
-      {user.email}
-    </span>
-    <Button 
-      variant="outline" 
-      size="sm"
-      onClick={handleSignOut}
-    >
-      Déconnexion
-    </Button>
-  </div>
-) : (
-  <Link to="/login">
-    <Button size="sm">Se connecter</Button>
-  </Link>
-)}
+            <div className="flex items-center gap-3">
+              <Link
+                to="/history"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Historique
+              </Link>
+              <span className="text-sm text-muted-foreground hidden md:block">
+                {user.email}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSignOut}
+              >
+                Déconnexion
+              </Button>
+            </div>
+          ) : (
+            <Link to="/login">
+              <Button size="sm">Se connecter</Button>
+            </Link>
+          )}
         </div>
       </div>
     </nav>
