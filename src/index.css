@@ -1,0 +1,196 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* stylelint-disable at-rule-no-unknown */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+/* stylelint-enable at-rule-no-unknown */
+
+
+
+@layer base {
+  :root {
+    /* WinStack Design System - Professional B2B */
+    --background: 0 0% 98%; /* #fafafa */
+    --foreground: 0 0% 7%; /* #111111 */
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 7%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 7%;
+
+    --primary: 217 91% 60%; /* #2563eb */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 14% 96%; /* Light gray bg */
+    --secondary-foreground: 0 0% 7%;
+
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%; /* #6b7280 */
+
+    --accent: 220 14% 96%;
+    --accent-foreground: 0 0% 7%;
+
+    --destructive: 0 84% 60%; /* #ef4444 */
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 160 84% 39%; /* #10b981 */
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%; /* #f59e0b */
+    --warning-foreground: 0 0% 7%;
+
+    --border: 220 13% 91%; /* #e5e7eb */
+    --input: 220 13% 91%;
+    --ring: 217 91% 60%;
+
+    --radius: 1rem;
+
+    /* Custom shadows */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-navbar: 0 1px 3px 0 rgb(0 0 0 / 0.05);
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217 91% 60%;
+  }
+
+  .dark {
+    --background: 0 0% 7%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 10%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 10%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 14% 15%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 220 14% 15%;
+    --muted-foreground: 220 9% 60%;
+    --accent: 220 14% 15%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 0 0% 98%;
+    --success: 160 84% 39%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 7%;
+    --border: 220 14% 20%;
+    --input: 220 14% 20%;
+    --ring: 217 91% 60%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply tracking-tight font-semibold;
+  }
+}
+
+@layer components {
+  /* Professional card style */
+  .card-professional {
+    @apply bg-card border border-border rounded-2xl p-6 shadow-sm;
+  }
+
+  /* Risk badges */
+  .badge-risk-low {
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium;
+    background-color: hsl(var(--success) / 0.1);
+    color: hsl(var(--success));
+  }
+
+  .badge-risk-medium {
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium;
+    background-color: hsl(var(--warning) / 0.1);
+    color: hsl(var(--warning));
+  }
+
+  .badge-risk-high {
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium;
+    background-color: hsl(var(--destructive) / 0.1);
+    color: hsl(var(--destructive));
+  }
+
+  /* Tech tags */
+  .tag-tech {
+    @apply inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium bg-secondary text-secondary-foreground;
+  }
+
+  /* Alert boxes */
+  .alert-warning {
+    @apply p-4 rounded-xl border;
+    background-color: hsl(var(--warning) / 0.05);
+    border-color: hsl(var(--warning) / 0.3);
+  }
+
+  .alert-danger {
+    @apply p-4 rounded-xl border;
+    background-color: hsl(var(--destructive) / 0.05);
+    border-color: hsl(var(--destructive) / 0.3);
+  }
+
+  /* Upload zone */
+  .upload-zone {
+    @apply border-2 border-dashed border-border rounded-2xl p-12 transition-all duration-150 cursor-pointer;
+  }
+
+  .upload-zone:hover {
+    @apply border-primary/50 bg-primary/5;
+  }
+
+  .upload-zone.dragging {
+    @apply border-primary bg-primary/10 scale-[1.02];
+  }
+}
+
+@layer utilities {
+  /* Fade in animation */
+  .animate-fade-in-up {
+    animation: fadeInUp 0.4s ease-out forwards;
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Stagger children */
+  .stagger-children > * {
+    animation: fadeInUp 0.4s ease-out forwards;
+    opacity: 0;
+  }
+
+  .stagger-children > *:nth-child(1) { animation-delay: 0ms; }
+  .stagger-children > *:nth-child(2) { animation-delay: 50ms; }
+  .stagger-children > *:nth-child(3) { animation-delay: 100ms; }
+  .stagger-children > *:nth-child(4) { animation-delay: 150ms; }
+  .stagger-children > *:nth-child(5) { animation-delay: 200ms; }
+  .stagger-children > *:nth-child(6) { animation-delay: 250ms; }
+  .stagger-children > *:nth-child(7) { animation-delay: 300ms; }
+  .stagger-children > *:nth-child(8) { animation-delay: 350ms; }
+}
