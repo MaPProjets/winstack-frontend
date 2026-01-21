@@ -3,6 +3,8 @@ import { Navbar } from '@/components/Navbar';
 import { UploadZone } from '@/components/UploadZone';
 import { ResultsView } from '@/components/ResultsView';
 import { Footer } from '@/components/Footer';
+import { useAuth } from '@/lib/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 // Types pour l'API
 interface ApiResponse {
@@ -111,6 +113,7 @@ const formatApiResponse = (data: ApiResponse): FormattedResult => {
 };
 
 const Index = () => {
+  const { user } = useAuth();
   const [file, setFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showResults, setShowResults] = useState(false);
@@ -118,43 +121,65 @@ const Index = () => {
   const [error, setError] = useState<string | null>(null);
 
   const handleAnalyze = async () => {
-    if (!file) return;
+  if (!file) return;
 
-    setIsLoading(true);
-    setError(null);
+  setIsLoading(true);
+  setError(null);
 
-    const formData = new FormData();
-    formData.append('file', file);
+  const formData = new FormData();
+  formData.append('file', file);
 
-    try {
-      console.log('Envoi de la requête vers le backend...');
-      
-      const response = await fetch('https://winstack-api.onrender.com/analyze-rfp', {
-        method: 'POST',
-        body: formData,
+  try {
+    console.log('Envoi de la requête vers le backend...');
+
+    const response = await fetch('https://winstack-api.onrender.com/analyze-rfp', {
+      method: 'POST',
+      body: formData,
+    });
+
+    console.log('Réponse reçue:', response.status);
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || 'Erreur lors de l\'analyse');
+    }
+
+    const data: ApiResponse = await response.json();
+    console.log('Données reçues:', data);
+
+    const formattedResult = formatApiResponse(data);
+
+    // Sauvegarde dans Supabase si l'utilisateur est connecté
+    if (user) {
+      const { error: saveError } = await supabase.from('analyses').insert({
+        user_id: user.id,
+        filename: file.name,
+        client_name: formattedResult.clientName,
+        project_title: formattedResult.projectTitle,
+        risk_level: formattedResult.riskLevel,
+        summary: formattedResult.summary,
+        deadline: formattedResult.deadline,
+        budget: formattedResult.estimatedBudget,
+        duration: formattedResult.duration,
+        analysis_data: formattedResult,
       });
 
-      console.log('Réponse reçue:', response.status);
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Erreur lors de l\'analyse');
+      if (saveError) {
+        console.error('Erreur sauvegarde:', saveError);
+      } else {
+        console.log('Analyse sauvegardée !');
       }
-
-      const data: ApiResponse = await response.json();
-      console.log('Données reçues:', data);
-      
-      const formattedResult = formatApiResponse(data);
-
-      setResult(formattedResult);
-      setShowResults(true);
-    } catch (err: any) {
-      console.error('Erreur:', err);
-      setError(err.message || 'Erreur lors de l\'analyse du document');
-    } finally {
-      setIsLoading(false);
     }
-  };
+
+    setResult(formattedResult);
+    setShowResults(true);
+  } catch (err: any) {
+    console.error('Erreur:', err);
+    setError(err.message || 'Erreur lors de l\'analyse du document');
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const handleBack = () => {
     setShowResults(false);
