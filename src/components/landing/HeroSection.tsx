@@ -39,7 +39,7 @@ export const HeroSection = ({ onScrollToUpload }: HeroSectionProps) => {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 max-w-3xl mx-auto">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 max-w-4xl mx-auto">
           <div className="flex flex-col items-center">
             <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mb-3">
               <Clock className="w-6 h-6 text-primary" />
