@@ -9,12 +9,6 @@ export const HeroSection = ({ onScrollToUpload }: HeroSectionProps) => {
   return (
     <section className="py-20 px-6">
       <div className="max-w-5xl mx-auto text-center">
-        {/* Badge */}
-        <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full text-primary text-sm font-medium mb-8">
-          <span className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-          Utilisé par +50 équipes commerciales
-        </div>
-
         {/* Titre */}
         <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground mb-6 leading-tight">
           Analysez un appel d'offres
