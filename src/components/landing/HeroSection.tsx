@@ -57,15 +57,22 @@ export const HeroSection = ({ onScrollToUpload }: HeroSectionProps) => {
             <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mb-3">
               <Target className="w-6 h-6 text-primary" />
             </div>
-            <p className="text-3xl font-bold text-foreground">95%</p>
-            <p className="text-muted-foreground">Critères détectés</p>
+            <p className="text-3xl font-bold text-foreground">83%</p>
+            <p className="text-muted-foreground">Précision moyenne</p>
           </div>
+          <div className="flex flex-col items-center">
+            <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mb-3">
+               <Target className="w-6 h-6 text-primary" />
+            </div>
+            <p className="text-3xl font-bold text-foreground">7</p>
+            <p className="text-muted-foreground">Critères extraits</p>
+         </div>
           <div className="flex flex-col items-center">
             <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mb-3">
               <FileSearch className="w-6 h-6 text-primary" />
             </div>
-            <p className="text-3xl font-bold text-foreground">500+</p>
-            <p className="text-muted-foreground">AO analysés</p>
+            <p className="text-3xl font-bold text-foreground">PDF</p>
+            <p className="text-muted-foreground">Export instantané</p>
           </div>
         </div>
       </div>
