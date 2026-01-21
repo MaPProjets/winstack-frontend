@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Check, Zap, Building2, Rocket, ArrowLeft, X } from 'lucide-react';
+import { Check, Zap, Rocket, Building2, ArrowLeft, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 
@@ -14,53 +14,54 @@ const Pricing = () => {
   const plans = [
     {
       name: 'Starter',
-      price: 99,
-      description: 'Pour les indépendants et petites équipes',
+      price: 49,
+      period: '/mois HT',
+      description: 'Pour tester et valider l\'outil',
       icon: Zap,
       features: [
-        '20 analyses / mois',
-        'Export PDF',
-        'Détection des critères éliminatoires',
-        'Historique 30 jours',
-        'Support email',
+        { text: '30 analyses / mois', included: true },
+        { text: 'Export PDF', included: true },
+        { text: 'Détection critères Go/No-Go', included: true },
+        { text: 'Historique 30 jours', included: true },
+        { text: 'Support email', included: true },
+        { text: 'Historique illimité', included: false },
+        { text: 'Analyses illimitées', included: false },
       ],
       cta: 'Commencer',
       popular: false,
     },
     {
       name: 'Pro',
-      price: 199,
-      description: 'Pour les PME et cabinets de conseil',
+      price: 149,
+      period: '/mois HT',
+      description: 'Pour les équipes qui répondent régulièrement',
       icon: Rocket,
       features: [
-        '100 analyses / mois',
-        'Export PDF',
-        'Détection des critères éliminatoires',
-        'Historique illimité',
-        '3 utilisateurs inclus',
-        'Analyse comparative',
-        'Support prioritaire',
+        { text: 'Analyses illimitées', included: true },
+        { text: 'Export PDF', included: true },
+        { text: 'Détection critères Go/No-Go', included: true },
+        { text: 'Historique illimité', included: true },
+        { text: 'Support prioritaire (24h)', included: true },
+        { text: 'Accès aux nouvelles features en avant-première', included: true },
       ],
       cta: 'Choisir Pro',
       popular: true,
     },
     {
       name: 'Enterprise',
-      price: 349,
-      description: 'Pour les ESN et grands comptes',
+      price: null,
+      period: '',
+      description: 'Pour les grands comptes avec besoins spécifiques',
       icon: Building2,
       features: [
-        'Analyses illimitées',
-        'Export PDF & Excel',
-        'Détection des critères éliminatoires',
-        'Historique illimité',
-        '10 utilisateurs inclus',
-        'API access',
-        'Intégration CRM',
-        'Account manager dédié',
-        'SLA 99.9%',
+        { text: 'Tout le plan Pro', included: true },
+        { text: 'Multi-utilisateurs', included: true },
+        { text: 'Accès API', included: true },
+        { text: 'Intégrations sur-mesure', included: true },
+        { text: 'Account manager dédié', included: true },
+        { text: 'Facturation annuelle', included: true },
       ],
-      cta: 'Contacter les ventes',
+      cta: 'Nous contacter',
       popular: false,
     },
   ];
@@ -115,10 +116,12 @@ const Pricing = () => {
 
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-foreground mb-4">
-            Choisissez votre plan
+            Un prix simple, un ROI immédiat
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Gagnez des heures sur chaque appel d'offres. ROI immédiat dès la première analyse.
+            Une analyse manuelle = 2-4h de travail. WinStack = 30 secondes.
+            <br />
+            <span className="text-foreground font-medium">Rentabilisé dès le premier appel d'offres.</span>
           </p>
         </div>
 
@@ -136,7 +139,7 @@ const Pricing = () => {
               {plan.popular && (
                 <div className="absolute -top-4 left-1/2 -translate-x-1/2">
                   <span className="bg-yellow-500 text-black text-xs font-bold px-3 py-1 rounded-full">
-                    POPULAIRE
+                    RECOMMANDÉ
                   </span>
                 </div>
               )}
@@ -147,10 +150,16 @@ const Pricing = () => {
               </div>
 
               <div className="mb-4">
-                <span className="text-4xl font-bold">{plan.price}€</span>
-                <span className={`text-sm ${plan.popular ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
-                  /mois HT
-                </span>
+                {plan.price !== null ? (
+                  <>
+                    <span className="text-4xl font-bold">{plan.price}€</span>
+                    <span className={`text-sm ${plan.popular ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
+                      {plan.period}
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-3xl font-bold">Sur devis</span>
+                )}
               </div>
 
               <p className={`text-sm mb-6 ${plan.popular ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
@@ -171,9 +180,17 @@ const Pricing = () => {
               <ul className="space-y-3">
                 {plan.features.map((feature, index) => (
                   <li key={index} className="flex items-start gap-3">
-                    <Check className={`w-5 h-5 flex-shrink-0 ${plan.popular ? 'text-primary-foreground' : 'text-green-500'}`} />
-                    <span className={`text-sm ${plan.popular ? 'text-primary-foreground/90' : 'text-foreground'}`}>
-                      {feature}
+                    {feature.included ? (
+                      <Check className={`w-5 h-5 flex-shrink-0 ${plan.popular ? 'text-primary-foreground' : 'text-green-500'}`} />
+                    ) : (
+                      <X className={`w-5 h-5 flex-shrink-0 ${plan.popular ? 'text-primary-foreground/40' : 'text-muted-foreground/40'}`} />
+                    )}
+                    <span className={`text-sm ${
+                      feature.included 
+                        ? (plan.popular ? 'text-primary-foreground/90' : 'text-foreground')
+                        : (plan.popular ? 'text-primary-foreground/40' : 'text-muted-foreground/40')
+                    }`}>
+                      {feature.text}
                     </span>
                   </li>
                 ))}
@@ -182,15 +199,60 @@ const Pricing = () => {
           ))}
         </div>
 
+        {/* ROI Calculator */}
+        <div className="bg-muted/30 rounded-2xl p-8 mb-12">
+          <h3 className="text-2xl font-bold text-foreground text-center mb-6">
+            Calculez votre ROI
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+            <div>
+              <p className="text-4xl font-bold text-primary mb-2">2-4h</p>
+              <p className="text-muted-foreground">Temps d'analyse manuelle par CCTP</p>
+            </div>
+            <div>
+              <p className="text-4xl font-bold text-primary mb-2">30 sec</p>
+              <p className="text-muted-foreground">Temps d'analyse avec WinStack</p>
+            </div>
+            <div>
+              <p className="text-4xl font-bold text-primary mb-2">~150€</p>
+              <p className="text-muted-foreground">Économisé par analyse (coût horaire consultant)</p>
+            </div>
+          </div>
+          <p className="text-center text-muted-foreground mt-6">
+            → Avec seulement <span className="text-foreground font-medium">2 analyses par mois</span>, le plan Pro est rentabilisé.
+          </p>
+        </div>
+
+        {/* FAQ */}
+        <div className="max-w-3xl mx-auto mb-12">
+          <h3 className="text-2xl font-bold text-foreground text-center mb-8">
+            Questions fréquentes
+          </h3>
+          <div className="space-y-4">
+            <div className="bg-card border border-border rounded-xl p-6">
+              <h4 className="font-semibold text-foreground mb-2">Puis-je tester avant de m'engager ?</h4>
+              <p className="text-muted-foreground text-sm">Oui, nous offrons actuellement un accès beta gratuit pour tester l'outil. Contactez-nous !</p>
+            </div>
+            <div className="bg-card border border-border rounded-xl p-6">
+              <h4 className="font-semibold text-foreground mb-2">Comment sont comptées les analyses ?</h4>
+              <p className="text-muted-foreground text-sm">Une analyse = un document uploadé. Les ré-téléchargements PDF ne comptent pas.</p>
+            </div>
+            <div className="bg-card border border-border rounded-xl p-6">
+              <h4 className="font-semibold text-foreground mb-2">Puis-je changer de plan à tout moment ?</h4>
+              <p className="text-muted-foreground text-sm">Oui, vous pouvez upgrader ou downgrader à tout moment. Le changement prend effet immédiatement.</p>
+            </div>
+          </div>
+        </div>
+
         {/* Trust badges */}
         <div className="text-center">
           <p className="text-muted-foreground mb-4">
-            ✓ Sans engagement · ✓ Annulation à tout moment · ✓ Facture française
+            ✓ Sans engagement · ✓ Annulation à tout moment · ✓ Données hébergées en France
           </p>
           <p className="text-sm text-muted-foreground">
             Une question ?{' '}
             <a href="mailto:contact@winstack.fr" className="text-primary hover:underline">
-              Contactez-nous
+              contact@winstack.fr
             </a>
           </p>
         </div>
@@ -228,10 +290,11 @@ const Pricing = () => {
             ) : (
               <>
                 <h3 className="text-xl font-semibold text-foreground mb-2">
-                  Réservez votre place
+                  {selectedPlan === 'Enterprise' ? 'Demander un devis' : 'Réserver votre accès'}
                 </h3>
                 <p className="text-muted-foreground mb-6">
-                  Plan <span className="font-medium text-foreground">{selectedPlan}</span> — Nous lançons bientôt ! Soyez parmi les premiers.
+                  Plan <span className="font-medium text-foreground">{selectedPlan}</span>
+                  {selectedPlan !== 'Enterprise' && ' — Lancement imminent !'}
                 </p>
 
                 <form onSubmit={handleSubmit}>
@@ -253,7 +316,7 @@ const Pricing = () => {
                     disabled={isSubmitting}
                     className="w-full py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 disabled:opacity-50"
                   >
-                    {isSubmitting ? 'Envoi...' : 'Réserver ma place'}
+                    {isSubmitting ? 'Envoi...' : selectedPlan === 'Enterprise' ? 'Demander un devis' : 'Réserver ma place'}
                   </button>
                 </form>
 
