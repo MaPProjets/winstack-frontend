@@ -19,7 +19,7 @@ const Pricing = () => {
       description: 'Pour tester et valider l\'outil',
       icon: Zap,
       features: [
-        { text: '30 analyses / mois', included: true },
+        { text: '20 analyses / mois', included: true },
         { text: 'Export PDF', included: true },
         { text: 'Détection critères Go/No-Go', included: true },
         { text: 'Historique 30 jours', included: true },

@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
 import { UploadZone } from '@/components/UploadZone';
 import { ResultsView } from '@/components/ResultsView';
@@ -9,7 +10,9 @@ import { FeaturesSection } from '@/components/landing/FeaturesSection';
 import { HowItWorksSection } from '@/components/landing/HowItWorksSection';
 import { CTASection } from '@/components/landing/CTASection';
 import { useAuth } from '@/lib/AuthContext';
+import { useSubscription } from '@/lib/useSubscription';
 import { supabase } from '@/lib/supabase';
+import { AlertTriangle } from 'lucide-react';
 
 // Types pour l'API
 interface ApiResponse {
@@ -115,6 +118,7 @@ const formatApiResponse = (data: ApiResponse): FormattedResult => {
 
 const Index = () => {
   const { user } = useAuth();
+  const { subscription, canAnalyze, remainingAnalyses, incrementUsage, loading: subLoading } = useSubscription();
   const [file, setFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showResults, setShowResults] = useState(false);
@@ -129,6 +133,18 @@ const Index = () => {
 
   const handleAnalyze = async () => {
     if (!file) return;
+
+    // Vérifier si l'utilisateur est connecté
+    if (!user) {
+      setError('Connectez-vous pour analyser un document.');
+      return;
+    }
+
+    // Vérifier le quota
+    if (!canAnalyze()) {
+      setError('Vous avez atteint votre limite d\'analyses. Passez au plan supérieur pour continuer.');
+      return;
+    }
 
     setIsLoading(true);
     setError(null);
@@ -150,6 +166,13 @@ const Index = () => {
       const data: ApiResponse = await response.json();
       const formattedResult = formatApiResponse(data);
 
+      // Incrémenter le compteur d'analyses
+      const incremented = await incrementUsage();
+      if (!incremented) {
+        console.warn('Impossible d\'incrémenter le compteur');
+      }
+
+      // Sauvegarder dans l'historique
       if (user) {
         const { error: saveError } = await supabase.from('analyses').insert({
           user_id: user.id,
@@ -221,16 +244,57 @@ const Index = () => {
               <h2 className="text-3xl font-bold text-foreground mb-4">
                 Essayez maintenant
               </h2>
-              <p className="text-muted-foreground">
-                Uploadez votre premier document gratuitement.
-              </p>
+              
+              {/* Affichage du quota */}
+              {user && subscription && !subLoading && (
+                <div className="mb-4">
+                  <p className="text-muted-foreground">
+                    {remainingAnalyses() === 'illimité' ? (
+                      <span className="text-green-600 font-medium">Analyses illimitées</span>
+                    ) : (
+                      <>
+                        <span className="text-foreground font-medium">{remainingAnalyses()}</span>
+                        {' '}analyse{Number(remainingAnalyses()) > 1 ? 's' : ''} restante{Number(remainingAnalyses()) > 1 ? 's' : ''}
+                        <span className="text-muted-foreground"> sur votre plan {subscription.plan}</span>
+                      </>
+                    )}
+                  </p>
+                </div>
+              )}
+
+              {!user && (
+                <p className="text-muted-foreground">
+                  <Link to="/login" className="text-primary hover:underline">Connectez-vous</Link>
+                  {' '}pour analyser vos documents.
+                </p>
+              )}
             </div>
+
+            {/* Alerte si limite atteinte */}
+            {user && subscription && !canAnalyze() && (
+              <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-xl flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-yellow-800 font-medium">Limite atteinte</p>
+                  <p className="text-yellow-700 text-sm">
+                    Vous avez utilisé toutes vos analyses ce mois-ci.{' '}
+                    <Link to="/pricing" className="underline font-medium">
+                      Passez au plan supérieur
+                    </Link>
+                    {' '}pour continuer.
+                  </p>
+                </div>
+              </div>
+            )}
+
             <UploadZone
               file={file}
               onFileChange={setFile}
               onAnalyze={handleAnalyze}
               isLoading={isLoading}
+              disabled={!user || (subscription ? !canAnalyze() : false)}
             />
+            
             {error && (
               <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-xl">
                 <p className="text-red-600 text-sm text-center">{error}</p>

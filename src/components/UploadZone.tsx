@@ -7,9 +7,10 @@ interface UploadZoneProps {
   onFileChange: (file: File | null) => void;
   onAnalyze: () => void;
   isLoading: boolean;
+  disabled?: boolean;
 }
 
-export const UploadZone = ({ file, onFileChange, onAnalyze, isLoading }: UploadZoneProps) => {
+export const UploadZone = ({ file, onFileChange, onAnalyze, isLoading, disabled }: UploadZoneProps) => {
   const [isDragging, setIsDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -109,7 +110,7 @@ export const UploadZone = ({ file, onFileChange, onAnalyze, isLoading }: UploadZ
       {/* Analyze Button */}
       <Button
         onClick={onAnalyze}
-        disabled={!file || isLoading}
+        disabled={!file || isLoading || disabled}
         className="w-full h-12 text-base font-medium"
       >
         {isLoading ? (
