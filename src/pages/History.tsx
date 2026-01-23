@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
+import { useSubscription } from '@/lib/useSubscription';
 import { supabase } from '@/lib/supabase';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
+import { Crown, AlertCircle } from 'lucide-react';
 
 interface Analysis {
   id: string;
@@ -21,9 +23,13 @@ interface Analysis {
 
 const History = () => {
   const { user, loading: authLoading } = useAuth();
+  const { subscription } = useSubscription();
   const navigate = useNavigate();
   const [analyses, setAnalyses] = useState<Analysis[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hiddenCount, setHiddenCount] = useState(0);
+
+  const isPro = subscription?.plan === 'pro' || subscription?.plan === 'enterprise';
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -43,7 +49,23 @@ const History = () => {
       if (error) {
         console.error('Erreur chargement analyses:', error);
       } else {
-        setAnalyses(data || []);
+        const allAnalyses = data || [];
+        
+        // Filtrer pour les plans non-Pro (30 jours)
+        if (!isPro) {
+          const thirtyDaysAgo = new Date();
+          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+          
+          const filtered = allAnalyses.filter(a => 
+            new Date(a.created_at) > thirtyDaysAgo
+          );
+          
+          setHiddenCount(allAnalyses.length - filtered.length);
+          setAnalyses(filtered);
+        } else {
+          setHiddenCount(0);
+          setAnalyses(allAnalyses);
+        }
       }
       setLoading(false);
     };
@@ -51,9 +73,10 @@ const History = () => {
     if (user) {
       fetchAnalyses();
     }
-  }, [user]);
+  }, [user, isPro]);
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
     if (!confirm('Supprimer cette analyse ?')) return;
 
     const { error } = await supabase
@@ -115,12 +138,44 @@ const History = () => {
               <h1 className="text-3xl font-bold text-foreground">Historique</h1>
               <p className="text-muted-foreground mt-1">
                 {analyses.length} analyse{analyses.length > 1 ? 's' : ''} sauvegardée{analyses.length > 1 ? 's' : ''}
+                {!isPro && <span className="text-xs ml-2">(30 derniers jours)</span>}
               </p>
             </div>
             <Link to="/">
               <Button>Nouvelle analyse</Button>
             </Link>
           </div>
+
+          {/* Alerte historique limité */}
+          {!isPro && hiddenCount > 0 && (
+            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-amber-800 font-medium">
+                  {hiddenCount} analyse{hiddenCount > 1 ? 's' : ''} archivée{hiddenCount > 1 ? 's' : ''}
+                </p>
+                <p className="text-amber-700 text-sm">
+                  Votre plan limite l'historique à 30 jours.
+                </p>
+              </div>
+              <Link to="/pricing">
+                <Button size="sm" className="flex items-center gap-1">
+                  <Crown className="w-4 h-4" />
+                  Passer Pro
+                </Button>
+              </Link>
+            </div>
+          )}
+
+          {/* Badge Pro */}
+          {isPro && (
+            <div className="mb-6 p-4 bg-primary/5 border border-primary/20 rounded-xl flex items-center gap-3">
+              <Crown className="w-5 h-5 text-primary" />
+              <p className="text-sm text-foreground">
+                <span className="font-medium">Plan Pro</span> — Historique illimité + Support prioritaire
+              </p>
+            </div>
+          )}
 
           {/* Liste des analyses */}
           {analyses.length === 0 ? (
@@ -134,9 +189,9 @@ const History = () => {
             <div className="space-y-4">
               {analyses.map((analysis) => (
                 <div
-                    key={analysis.id}
-                    onClick={() => navigate(`/analysis/${analysis.id}`)}
-                    className="bg-card border border-border rounded-2xl p-6 hover:shadow-md transition-shadow cursor-pointer"
+                  key={analysis.id}
+                  onClick={() => navigate(`/analysis/${analysis.id}`)}
+                  className="bg-card border border-border rounded-2xl p-6 hover:shadow-md transition-shadow cursor-pointer"
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
@@ -161,7 +216,7 @@ const History = () => {
                       </div>
                     </div>
                     <button
-                      onClick={() => handleDelete(analysis.id)}
+                      onClick={(e) => handleDelete(analysis.id, e)}
                       className="p-2 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                       title="Supprimer"
                     >

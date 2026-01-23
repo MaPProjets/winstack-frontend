@@ -9,6 +9,7 @@ import Login from "./pages/Login";
 import History from "./pages/History";
 import AnalysisDetail from "./pages/AnalysisDetail";
 import Pricing from "./pages/Pricing";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
             <Route path="/history" element={<History />} />
             <Route path="/analysis/:id" element={<AnalysisDetail />} />
             <Route path="/pricing" element={<Pricing />} />
+            <Route path="/settings" element={<Settings />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

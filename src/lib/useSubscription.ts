@@ -6,6 +6,13 @@ interface Subscription {
   plan: string;
   analyses_used: number;
   analyses_limit: number;
+  company_name: string | null;
+  logo_url: string | null;
+  company_revenue: string | null;
+  company_certifications: string[] | null;
+  company_technologies: string[] | null;
+  company_location: string | null;
+  company_employees: string | null;
 }
 
 export const useSubscription = () => {
@@ -22,24 +29,23 @@ export const useSubscription = () => {
 
     const { data, error } = await supabase
       .from('subscriptions')
-      .select('plan, analyses_used, analyses_limit')
+      .select('plan, analyses_used, analyses_limit, company_name, logo_url, company_revenue, company_certifications, company_technologies, company_location, company_employees')
       .eq('user_id', user.id)
       .single();
 
     if (error) {
-      // Si pas d'abonnement, en créer un par défaut (free, 5 analyses)
       if (error.code === 'PGRST116') {
         const { data: newSub, error: insertError } = await supabase
           .from('subscriptions')
-          .insert({ 
-            user_id: user.id, 
-            plan: 'free', 
+          .insert({
+            user_id: user.id,
+            plan: 'free',
             analyses_limit: 5,
-            analyses_used: 0 
+            analyses_used: 0
           })
-          .select('plan, analyses_used, analyses_limit')
+          .select('plan, analyses_used, analyses_limit, company_name, logo_url, company_revenue, company_certifications, company_technologies, company_location, company_employees')
           .single();
-        
+
         if (!insertError && newSub) {
           setSubscription(newSub);
         }
@@ -68,11 +74,8 @@ export const useSubscription = () => {
 
   const incrementUsage = async (): Promise<boolean> => {
     if (!user || !subscription) return false;
-    
-    // Vérifier si on peut analyser
     if (!canAnalyze()) return false;
 
-    // Incrémenter le compteur
     const { error } = await supabase
       .from('subscriptions')
       .update({ analyses_used: subscription.analyses_used + 1 })
@@ -89,12 +92,22 @@ export const useSubscription = () => {
     return false;
   };
 
+  const hasCompanyProfile = (): boolean => {
+    if (!subscription) return false;
+    return !!(
+      subscription.company_revenue ||
+      (subscription.company_certifications && subscription.company_certifications.length > 0) ||
+      (subscription.company_technologies && subscription.company_technologies.length > 0)
+    );
+  };
+
   return {
     subscription,
     loading,
     canAnalyze,
     remainingAnalyses,
     incrementUsage,
+    hasCompanyProfile,
     refetch: fetchSubscription,
   };
 };
