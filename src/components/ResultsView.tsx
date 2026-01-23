@@ -1,5 +1,21 @@
-import { ArrowLeft, AlertTriangle, XCircle } from 'lucide-react';
+import { useState } from 'react';
+import { ArrowLeft, AlertTriangle, XCircle, FileText, CheckSquare, Square, Briefcase, Receipt, ClipboardList, ListChecks, Users, Cog, Calendar, Award, Shield } from 'lucide-react';
 import { ExportPDF } from './ExportPDF';
+import { CompatibilityScore } from './CompatibilityScore';
+
+interface RequiredDocument {
+  name: string;
+  type: 'administrative' | 'technical' | 'financial';
+  mandatory: boolean;
+  description: string | null;
+}
+
+interface ResponseRequirement {
+  requirement: string;
+  category: 'methodology' | 'team' | 'technical' | 'planning' | 'references' | 'commitments';
+  source: string | null;
+  priority: 'high' | 'medium';
+}
 
 interface AnalysisResult {
   clientName: string;
@@ -24,6 +40,8 @@ interface AnalysisResult {
   technologies: string[];
   requiredProfiles: string;
   warnings: string[];
+  requiredDocuments: RequiredDocument[];
+  responseRequirements: ResponseRequirement[];
 }
 
 interface ResultsViewProps {
@@ -32,6 +50,31 @@ interface ResultsViewProps {
 }
 
 export const ResultsView = ({ result, onBack }: ResultsViewProps) => {
+  // État pour la checklist documents
+  const [checkedDocs, setCheckedDocs] = useState<Set<string>>(new Set());
+  // État pour la checklist exigences
+  const [checkedReqs, setCheckedReqs] = useState<Set<string>>(new Set());
+
+  const toggleDoc = (docName: string) => {
+    const newChecked = new Set(checkedDocs);
+    if (newChecked.has(docName)) {
+      newChecked.delete(docName);
+    } else {
+      newChecked.add(docName);
+    }
+    setCheckedDocs(newChecked);
+  };
+
+  const toggleReq = (reqText: string) => {
+    const newChecked = new Set(checkedReqs);
+    if (newChecked.has(reqText)) {
+      newChecked.delete(reqText);
+    } else {
+      newChecked.add(reqText);
+    }
+    setCheckedReqs(newChecked);
+  };
+
   const getRiskBadge = () => {
     switch (result.riskLevel) {
       case 'low':
@@ -58,7 +101,100 @@ export const ResultsView = ({ result, onBack }: ResultsViewProps) => {
     }
   };
 
-  // Générer un nom de fichier propre
+  // Grouper les documents par type
+  const groupedDocs = {
+    administrative: result.requiredDocuments?.filter(d => d.type === 'administrative') || [],
+    technical: result.requiredDocuments?.filter(d => d.type === 'technical') || [],
+    financial: result.requiredDocuments?.filter(d => d.type === 'financial') || [],
+  };
+
+  // Grouper les exigences par catégorie
+  const groupedReqs = {
+    methodology: result.responseRequirements?.filter(r => r.category === 'methodology') || [],
+    team: result.responseRequirements?.filter(r => r.category === 'team') || [],
+    technical: result.responseRequirements?.filter(r => r.category === 'technical') || [],
+    planning: result.responseRequirements?.filter(r => r.category === 'planning') || [],
+    references: result.responseRequirements?.filter(r => r.category === 'references') || [],
+    commitments: result.responseRequirements?.filter(r => r.category === 'commitments') || [],
+  };
+
+  const totalDocs = result.requiredDocuments?.length || 0;
+  const checkedDocsCount = checkedDocs.size;
+  const docsProgress = totalDocs > 0 ? (checkedDocsCount / totalDocs) * 100 : 0;
+
+  const totalReqs = result.responseRequirements?.length || 0;
+  const checkedReqsCount = checkedReqs.size;
+  const reqsProgress = totalReqs > 0 ? (checkedReqsCount / totalReqs) * 100 : 0;
+
+  const getDocTypeConfig = (type: 'administrative' | 'technical' | 'financial') => {
+    const config = {
+      administrative: {
+        icon: Briefcase,
+        label: 'Documents administratifs',
+        bgColor: 'bg-blue-50',
+        textColor: 'text-blue-700',
+        borderColor: 'border-blue-200',
+      },
+      technical: {
+        icon: ClipboardList,
+        label: 'Documents techniques',
+        bgColor: 'bg-purple-50',
+        textColor: 'text-purple-700',
+        borderColor: 'border-purple-200',
+      },
+      financial: {
+        icon: Receipt,
+        label: 'Documents financiers',
+        bgColor: 'bg-green-50',
+        textColor: 'text-green-700',
+        borderColor: 'border-green-200',
+      },
+    };
+    return config[type];
+  };
+
+  const getReqCategoryConfig = (category: ResponseRequirement['category']) => {
+    const config = {
+      methodology: {
+        icon: Cog,
+        label: 'Méthodologie',
+        bgColor: 'bg-indigo-50',
+        textColor: 'text-indigo-700',
+      },
+      team: {
+        icon: Users,
+        label: 'Équipe',
+        bgColor: 'bg-cyan-50',
+        textColor: 'text-cyan-700',
+      },
+      technical: {
+        icon: ClipboardList,
+        label: 'Technique',
+        bgColor: 'bg-purple-50',
+        textColor: 'text-purple-700',
+      },
+      planning: {
+        icon: Calendar,
+        label: 'Planning',
+        bgColor: 'bg-amber-50',
+        textColor: 'text-amber-700',
+      },
+      references: {
+        icon: Award,
+        label: 'Références',
+        bgColor: 'bg-emerald-50',
+        textColor: 'text-emerald-700',
+      },
+      commitments: {
+        icon: Shield,
+        label: 'Engagements',
+        bgColor: 'bg-rose-50',
+        textColor: 'text-rose-700',
+      },
+    };
+    return config[category];
+  };
+
   const sanitizedFilename = `Analyse_${result.clientName.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}`;
 
   return (
@@ -74,6 +210,9 @@ export const ResultsView = ({ result, onBack }: ResultsViewProps) => {
         </button>
         <ExportPDF contentId="analysis-content" filename={sanitizedFilename} />
       </div>
+
+      {/* Score de compatibilité (avant le contenu principal) */}
+      <CompatibilityScore result={result} />
 
       {/* Contenu exportable en PDF */}
       <div id="analysis-content">
@@ -106,6 +245,228 @@ export const ResultsView = ({ result, onBack }: ResultsViewProps) => {
             <p className="text-lg font-medium text-foreground">{result.duration}</p>
           </div>
         </div>
+
+        {/* ========== SECTION 1 : CHECKLIST DOCUMENTS ========== */}
+        {totalDocs > 0 && (
+          <div className="card-professional mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
+                  <FileText className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-foreground">Documents à fournir</h2>
+                  <p className="text-sm text-muted-foreground">
+                    {checkedDocsCount} / {totalDocs} préparés
+                  </p>
+                </div>
+              </div>
+              {/* Barre de progression */}
+              <div className="hidden sm:flex items-center gap-3">
+                <div className="w-32 h-2 bg-secondary rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-primary rounded-full transition-all duration-300"
+                    style={{ width: `${docsProgress}%` }}
+                  />
+                </div>
+                <span className="text-sm font-medium text-foreground">{Math.round(docsProgress)}%</span>
+              </div>
+            </div>
+
+            {/* Liste par catégorie */}
+            <div className="space-y-6">
+              {(['administrative', 'technical', 'financial'] as const).map((type) => {
+                const docs = groupedDocs[type];
+                if (docs.length === 0) return null;
+                
+                const config = getDocTypeConfig(type);
+                const Icon = config.icon;
+                
+                return (
+                  <div key={type}>
+                    {/* Header de catégorie */}
+                    <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${config.bgColor} mb-3`}>
+                      <Icon className={`w-4 h-4 ${config.textColor}`} />
+                      <span className={`text-sm font-medium ${config.textColor}`}>
+                        {config.label}
+                      </span>
+                      <span className={`text-xs ${config.textColor} opacity-70`}>
+                        ({docs.length})
+                      </span>
+                    </div>
+                    
+                    {/* Liste des documents */}
+                    <div className="space-y-2 pl-2">
+                      {docs.map((doc, index) => {
+                        const isChecked = checkedDocs.has(doc.name);
+                        return (
+                          <div
+                            key={index}
+                            onClick={() => toggleDoc(doc.name)}
+                            className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-all duration-200 ${
+                              isChecked 
+                                ? 'bg-green-50 border border-green-200' 
+                                : 'bg-secondary/50 hover:bg-secondary border border-transparent'
+                            }`}
+                          >
+                            {/* Checkbox */}
+                            <div className="flex-shrink-0 mt-0.5">
+                              {isChecked ? (
+                                <CheckSquare className="w-5 h-5 text-green-600" />
+                              ) : (
+                                <Square className="w-5 h-5 text-muted-foreground" />
+                              )}
+                            </div>
+                            
+                            {/* Contenu */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className={`font-medium ${isChecked ? 'text-green-700 line-through' : 'text-foreground'}`}>
+                                  {doc.name}
+                                </p>
+                                {doc.mandatory && (
+                                  <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-red-100 text-red-700 rounded">
+                                    OBLIGATOIRE
+                                  </span>
+                                )}
+                              </div>
+                              {doc.description && (
+                                <p className={`text-sm mt-0.5 ${isChecked ? 'text-green-600' : 'text-muted-foreground'}`}>
+                                  {doc.description}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Message de complétion */}
+            {checkedDocsCount === totalDocs && totalDocs > 0 && (
+              <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
+                <CheckSquare className="w-5 h-5 text-green-600" />
+                <span className="text-green-700 font-medium">
+                  Tous les documents sont prêts ! 🎉
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ========== SECTION 2 : EXIGENCES DE RÉPONSE ========== */}
+        {totalReqs > 0 && (
+          <div className="card-professional mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
+                  <ListChecks className="w-5 h-5 text-amber-600" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-foreground">Points à traiter dans votre réponse</h2>
+                  <p className="text-sm text-muted-foreground">
+                    {checkedReqsCount} / {totalReqs} traités
+                  </p>
+                </div>
+              </div>
+              {/* Barre de progression */}
+              <div className="hidden sm:flex items-center gap-3">
+                <div className="w-32 h-2 bg-secondary rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-amber-500 rounded-full transition-all duration-300"
+                    style={{ width: `${reqsProgress}%` }}
+                  />
+                </div>
+                <span className="text-sm font-medium text-foreground">{Math.round(reqsProgress)}%</span>
+              </div>
+            </div>
+
+            {/* Liste par catégorie */}
+            <div className="space-y-6">
+              {(['methodology', 'team', 'technical', 'planning', 'references', 'commitments'] as const).map((category) => {
+                const reqs = groupedReqs[category];
+                if (reqs.length === 0) return null;
+                
+                const config = getReqCategoryConfig(category);
+                const Icon = config.icon;
+                
+                return (
+                  <div key={category}>
+                    {/* Header de catégorie */}
+                    <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${config.bgColor} mb-3`}>
+                      <Icon className={`w-4 h-4 ${config.textColor}`} />
+                      <span className={`text-sm font-medium ${config.textColor}`}>
+                        {config.label}
+                      </span>
+                      <span className={`text-xs ${config.textColor} opacity-70`}>
+                        ({reqs.length})
+                      </span>
+                    </div>
+                    
+                    {/* Liste des exigences */}
+                    <div className="space-y-2 pl-2">
+                      {reqs.map((req, index) => {
+                        const isChecked = checkedReqs.has(req.requirement);
+                        return (
+                          <div
+                            key={index}
+                            onClick={() => toggleReq(req.requirement)}
+                            className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-all duration-200 ${
+                              isChecked 
+                                ? 'bg-green-50 border border-green-200' 
+                                : 'bg-secondary/50 hover:bg-secondary border border-transparent'
+                            }`}
+                          >
+                            {/* Checkbox */}
+                            <div className="flex-shrink-0 mt-0.5">
+                              {isChecked ? (
+                                <CheckSquare className="w-5 h-5 text-green-600" />
+                              ) : (
+                                <Square className="w-5 h-5 text-muted-foreground" />
+                              )}
+                            </div>
+                            
+                            {/* Contenu */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start gap-2 flex-wrap">
+                                <p className={`font-medium ${isChecked ? 'text-green-700 line-through' : 'text-foreground'}`}>
+                                  {req.requirement}
+                                </p>
+                                {req.priority === 'high' && (
+                                  <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-amber-100 text-amber-700 rounded flex-shrink-0">
+                                    PRIORITAIRE
+                                  </span>
+                                )}
+                              </div>
+                              {req.source && (
+                                <p className={`text-xs mt-1 ${isChecked ? 'text-green-600' : 'text-muted-foreground'}`}>
+                                  📍 {req.source}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Message de complétion */}
+            {checkedReqsCount === totalReqs && totalReqs > 0 && (
+              <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
+                <CheckSquare className="w-5 h-5 text-green-600" />
+                <span className="text-green-700 font-medium">
+                  Tous les points sont traités ! Votre réponse est complète 🚀
+                </span>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Scoring Criteria */}
         <div className="card-professional mb-6">

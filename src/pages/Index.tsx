@@ -15,6 +15,20 @@ import { supabase } from '@/lib/supabase';
 import { AlertTriangle } from 'lucide-react';
 
 // Types pour l'API
+interface RequiredDocument {
+  name: string;
+  type: 'administrative' | 'technical' | 'financial';
+  mandatory: boolean;
+  description: string | null;
+}
+
+interface ResponseRequirement {
+  requirement: string;
+  category: 'methodology' | 'team' | 'technical' | 'planning' | 'references' | 'commitments';
+  source: string | null;
+  priority: 'high' | 'medium';
+}
+
 interface ApiResponse {
   filename: string;
   success: boolean;
@@ -45,6 +59,8 @@ interface ApiResponse {
       summary: string;
     };
     warnings: string[];
+    required_documents?: RequiredDocument[];
+    response_requirements?: ResponseRequirement[];
   };
 }
 
@@ -71,6 +87,8 @@ interface FormattedResult {
   technologies: string[];
   requiredProfiles: string;
   warnings: string[];
+  requiredDocuments: RequiredDocument[];
+  responseRequirements: ResponseRequirement[];
 }
 
 const formatApiResponse = (data: ApiResponse): FormattedResult => {
@@ -113,6 +131,8 @@ const formatApiResponse = (data: ApiResponse): FormattedResult => {
     technologies: analysis.tech_stack.technologies || [],
     requiredProfiles: analysis.tech_stack.profiles_required.join(', ') || 'Non spécifié',
     warnings: analysis.warnings || [],
+    requiredDocuments: analysis.required_documents || [],
+    responseRequirements: analysis.response_requirements || [],
   };
 };
 
