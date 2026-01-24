@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
-import { Crown, Upload, Trash2, Building2, Check, X, Plus, Briefcase, MapPin, Users, Award, Code } from 'lucide-react';
+import { Crown, Upload, Trash2, Building2, Check, X, Plus, Briefcase, MapPin, Users, Award, Code, FileCheck } from 'lucide-react';
 
 const CERTIFICATIONS_OPTIONS = [
   'ISO 9001', 'ISO 27001', 'ISO 14001', 'RGE', 'Qualiopi', 
@@ -36,8 +36,14 @@ const TECHNOLOGIES_OPTIONS = [
   'Mailjet', 'Mailchimp', 'SendGrid', 'Google Ads', 'AdSense', 'Meta Ads',
   // Performance
   'WP-Rocket', 'Cloudflare', 'Varnish',
+  // API & Tourisme (pour AO type Office de Tourisme)
+  'Tourinsoft', 'Apidae', 'LEI', 'Ingénie', 'Open System',
   // Affiliation
   'Amazon Affiliates', 'Awin', 'Ezoic'
+];
+
+const REFERENCES_OPTIONS = [
+  '0', '1-2', '3-5', '6-10', '10-20', '20+'
 ];
 
 const Settings = () => {
@@ -53,12 +59,13 @@ const Settings = () => {
   const [companyRevenue, setCompanyRevenue] = useState('');
   const [companyEmployees, setCompanyEmployees] = useState('');
   const [companyLocation, setCompanyLocation] = useState('');
+  const [companyReferences, setCompanyReferences] = useState(''); // NOUVEAU
   const [companyCertifications, setCompanyCertifications] = useState<string[]>([]);
   const [companyTechnologies, setCompanyTechnologies] = useState<string[]>([]);
   const [newCertification, setNewCertification] = useState('');
   const [newTechnology, setNewTechnology] = useState('');
-  const [customTechnology, setCustomTechnology] = useState(''); // Pour l'ajout manuel
-  const [customCertification, setCustomCertification] = useState(''); // Pour l'ajout manuel
+  const [customTechnology, setCustomTechnology] = useState('');
+  const [customCertification, setCustomCertification] = useState('');
   
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -78,7 +85,7 @@ const Settings = () => {
       
       const { data } = await supabase
         .from('subscriptions')
-        .select('company_name, logo_url, company_revenue, company_certifications, company_technologies, company_location, company_employees')
+        .select('company_name, logo_url, company_revenue, company_certifications, company_technologies, company_location, company_employees, company_references')
         .eq('user_id', user.id)
         .single();
       
@@ -88,6 +95,7 @@ const Settings = () => {
         setCompanyRevenue(data.company_revenue || '');
         setCompanyEmployees(data.company_employees || '');
         setCompanyLocation(data.company_location || '');
+        setCompanyReferences(data.company_references || ''); // NOUVEAU
         setCompanyCertifications(data.company_certifications || []);
         setCompanyTechnologies(data.company_technologies || []);
       }
@@ -184,6 +192,7 @@ const Settings = () => {
         company_revenue: companyRevenue,
         company_employees: companyEmployees,
         company_location: companyLocation,
+        company_references: companyReferences, // NOUVEAU
         company_certifications: companyCertifications,
         company_technologies: companyTechnologies,
       })
@@ -308,38 +317,32 @@ const Settings = () => {
                 
                 {logoUrl ? (
                   <div className="flex items-center gap-4">
-                    <div className="w-24 h-24 rounded-xl border border-border bg-white flex items-center justify-center p-2">
-                      <img 
-                        src={logoUrl} 
-                        alt="Logo" 
-                        className="max-w-full max-h-full object-contain"
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm text-muted-foreground mb-3">
-                        Ce logo apparaîtra sur vos exports PDF
-                      </p>
-                      <div className="flex gap-2">
-                        <label className="cursor-pointer">
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleLogoUpload}
-                            className="hidden"
-                          />
-                          <span className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-secondary hover:bg-secondary/80 rounded-lg transition-colors">
-                            Changer
-                          </span>
-                        </label>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleDeleteLogo}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
+                    <img 
+                      src={logoUrl} 
+                      alt="Logo" 
+                      className="h-16 w-auto object-contain border border-border rounded-lg p-2"
+                    />
+                    <div className="flex gap-2">
+                      <label className="cursor-pointer">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleLogoUpload}
+                          className="hidden"
+                        />
+                        <span className="inline-flex items-center gap-2 px-4 py-2 bg-secondary text-foreground rounded-lg text-sm font-medium hover:bg-secondary/80 transition-colors">
+                          <Upload className="w-4 h-4" />
+                          Changer
+                        </span>
+                      </label>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleDeleteLogo}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </div>
                   </div>
                 ) : (
@@ -349,11 +352,10 @@ const Settings = () => {
                       accept="image/*"
                       onChange={handleLogoUpload}
                       className="hidden"
-                      disabled={uploading}
                     />
                     <div className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-primary/50 transition-colors">
                       <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
-                      <p className="font-medium text-foreground mb-1">
+                      <p className="text-foreground font-medium">
                         {uploading ? 'Upload en cours...' : 'Cliquez pour ajouter votre logo'}
                       </p>
                       <p className="text-sm text-muted-foreground">
@@ -405,28 +407,59 @@ const Settings = () => {
                     className="w-full px-4 py-2.5 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
                   >
                     <option value="">Sélectionner</option>
-                    <option value="1-5">1 - 5 employés</option>
-                    <option value="6-20">6 - 20 employés</option>
-                    <option value="21-50">21 - 50 employés</option>
-                    <option value="51-200">51 - 200 employés</option>
-                    <option value="200+">Plus de 200 employés</option>
+                    <option value="1">Auto-entrepreneur</option>
+                    <option value="2-10">2-10 salariés</option>
+                    <option value="11-50">11-50 salariés</option>
+                    <option value="51-200">51-200 salariés</option>
+                    <option value="200+">Plus de 200 salariés</option>
                   </select>
                 </div>
               </div>
 
-              {/* Localisation */}
-              <div className="bg-card border border-border rounded-2xl p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <MapPin className="w-5 h-5 text-primary" />
-                  <h2 className="text-lg font-semibold">Zone géographique</h2>
+              {/* Références et Localisation */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* NOUVEAU : Références */}
+                <div className="bg-card border border-border rounded-2xl p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <FileCheck className="w-5 h-5 text-primary" />
+                    <h2 className="text-lg font-semibold">Références similaires</h2>
+                  </div>
+                  <select
+                    value={companyReferences}
+                    onChange={(e) => setCompanyReferences(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                  >
+                    <option value="">Sélectionner</option>
+                    <option value="0">Aucune référence</option>
+                    <option value="1-2">1-2 références</option>
+                    <option value="3-5">3-5 références</option>
+                    <option value="6-10">6-10 références</option>
+                    <option value="10-20">10-20 références</option>
+                    <option value="20+">Plus de 20 références</option>
+                  </select>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Nombre de projets similaires réalisés
+                  </p>
                 </div>
-                <input
-                  type="text"
-                  value={companyLocation}
-                  onChange={(e) => setCompanyLocation(e.target.value)}
-                  placeholder="Ex: France entière, Île-de-France, Bretagne..."
-                  className="w-full px-4 py-2.5 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
-                />
+
+                <div className="bg-card border border-border rounded-2xl p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <MapPin className="w-5 h-5 text-primary" />
+                    <h2 className="text-lg font-semibold">Zone d'intervention</h2>
+                  </div>
+                  <select
+                    value={companyLocation}
+                    onChange={(e) => setCompanyLocation(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                  >
+                    <option value="">Sélectionner</option>
+                    <option value="local">Local (ville/département)</option>
+                    <option value="regional">Régional</option>
+                    <option value="france">France entière</option>
+                    <option value="europe">Europe</option>
+                    <option value="international">International</option>
+                  </select>
+                </div>
               </div>
 
               {/* Certifications */}
@@ -441,12 +474,12 @@ const Settings = () => {
                     {companyCertifications.map((cert) => (
                       <span
                         key={cert}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-primary/10 text-primary rounded-full text-sm"
+                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-secondary text-foreground rounded-full text-sm"
                       >
                         {cert}
                         <button
                           onClick={() => removeCertification(cert)}
-                          className="hover:bg-primary/20 rounded-full p-0.5"
+                          className="hover:bg-secondary/80 rounded-full p-0.5"
                         >
                           <X className="w-3 h-3" />
                         </button>
@@ -455,14 +488,13 @@ const Settings = () => {
                   </div>
                 )}
 
-                {/* Sélecteur depuis la liste */}
                 <div className="flex gap-2 mb-3">
                   <select
                     value={newCertification}
                     onChange={(e) => setNewCertification(e.target.value)}
                     className="flex-1 px-4 py-2.5 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
                   >
-                    <option value="">Choisir dans la liste</option>
+                    <option value="">Choisir une certification</option>
                     {CERTIFICATIONS_OPTIONS.filter(c => !companyCertifications.includes(c)).map((cert) => (
                       <option key={cert} value={cert}>{cert}</option>
                     ))}

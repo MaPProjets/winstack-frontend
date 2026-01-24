@@ -30,9 +30,23 @@ const isNoRequirement = (value: string | null | undefined): boolean => {
   const normalized = value.toLowerCase().trim();
   const noRequirementTerms = [
     'non mentionné', 'non spécifié', 'non précisé', 'aucune', 'aucun',
-    'non exigé', 'pas de', 'n/a', 'na', '-', 'néant', 'sans objet'
+    'non exigé', 'pas de', 'n/a', 'na', '-', 'néant', 'sans objet',
+    'non requis', 'facultatif', 'optionnel', 'non obligatoire'
   ];
   return noRequirementTerms.some(term => normalized.includes(term)) || normalized.length === 0;
+};
+
+// Compte le profil rempli (pour l'indicateur)
+const getProfileCompleteness = (subscription: any): { filled: number; total: number } => {
+  const fields = [
+    subscription?.company_revenue,
+    subscription?.company_certifications?.length > 0,
+    subscription?.company_technologies?.length > 0,
+    subscription?.company_location,
+    subscription?.company_references,
+  ];
+  const filled = fields.filter(Boolean).length;
+  return { filled, total: fields.length };
 };
 
 export const CompatibilityScore = ({ result }: CompatibilityScoreProps) => {
@@ -66,6 +80,7 @@ export const CompatibilityScore = ({ result }: CompatibilityScoreProps) => {
   }
 
   if (!hasCompanyProfile()) {
+    const { filled, total } = getProfileCompleteness(subscription);
     return (
       <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 mb-6">
         <div className="flex items-start gap-4">
@@ -76,6 +91,9 @@ export const CompatibilityScore = ({ result }: CompatibilityScoreProps) => {
             <h3 className="font-semibold text-amber-800 mb-1">Complétez votre profil</h3>
             <p className="text-sm text-amber-700 mb-3">
               Renseignez les informations de votre entreprise pour calculer le score de compatibilité.
+              <span className="block mt-1 text-amber-600">
+                Profil complété : {filled}/{total} champs
+              </span>
             </p>
             <Link 
               to="/settings"
@@ -93,38 +111,53 @@ export const CompatibilityScore = ({ result }: CompatibilityScoreProps) => {
   const matches = calculateMatches(result, subscription);
   const totalPoints = matches.reduce((sum, m) => sum + m.points, 0);
   const maxPoints = matches.reduce((sum, m) => sum + m.maxPoints, 0);
+  
+  // Score de base
   let scorePercent = maxPoints > 0 ? Math.round((totalPoints / maxPoints) * 100) : 0;
   
-  // Critères bloquants = status "missing" sur un critère critique (CA ou certifications obligatoires)
+  // Critères bloquants = status "missing" sur un critère avec des points (et pas juste "aucune exigence")
   const blockers = matches.filter(m => 
     m.status === 'missing' && 
-    m.maxPoints >= 20 &&
-    !m.detail.toLowerCase().includes('aucun') // Ne pas compter comme bloquant si "aucune exigence"
+    m.maxPoints >= 15 &&
+    !m.detail.toLowerCase().includes('aucun')
   );
   
-  // Pénalité réduite pour les bloquants (15% au lieu de 25%)
+  // Pénalité réduite pour les bloquants (10% par bloquant, minimum 20%)
   if (blockers.length > 0) {
-    scorePercent = Math.max(15, scorePercent - (blockers.length * 15));
+    scorePercent = Math.max(20, scorePercent - (blockers.length * 10));
+  }
+
+  // Bonus si tout match parfaitement et pas de bloquants
+  const allMatch = matches.every(m => m.status === 'match');
+  if (allMatch && blockers.length === 0) {
+    scorePercent = Math.min(100, scorePercent + 5);
   }
 
   const warnings = matches.filter(m => m.status === 'partial');
+  const unknowns = matches.filter(m => m.status === 'unknown');
 
   const getScoreColor = () => {
-    if (scorePercent >= 70) return 'text-green-600';
-    if (scorePercent >= 45) return 'text-amber-600';
+    if (scorePercent >= 75) return 'text-green-600';
+    if (scorePercent >= 50) return 'text-amber-600';
     return 'text-red-600';
   };
 
   const getScoreBg = () => {
-    if (scorePercent >= 70) return 'bg-green-50 border-green-200';
-    if (scorePercent >= 45) return 'bg-amber-50 border-amber-200';
+    if (scorePercent >= 75) return 'bg-green-50 border-green-200';
+    if (scorePercent >= 50) return 'bg-amber-50 border-amber-200';
     return 'bg-red-50 border-red-200';
   };
 
   const getScoreLabel = () => {
-    if (scorePercent >= 70) return 'Bonne compatibilité';
-    if (scorePercent >= 45) return 'Compatibilité moyenne';
+    if (scorePercent >= 75) return 'Bonne compatibilité';
+    if (scorePercent >= 50) return 'Compatibilité moyenne';
     return 'Faible compatibilité';
+  };
+
+  const getScoreEmoji = () => {
+    if (scorePercent >= 75) return '✅';
+    if (scorePercent >= 50) return '⚠️';
+    return '❌';
   };
 
   return (
@@ -132,7 +165,7 @@ export const CompatibilityScore = ({ result }: CompatibilityScoreProps) => {
       {/* Header avec score */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h3 className="font-semibold text-foreground mb-1">Score de compatibilité</h3>
+          <h3 className="font-semibold text-foreground mb-1">Score de compatibilité {getScoreEmoji()}</h3>
           <p className="text-sm text-muted-foreground">{getScoreLabel()}</p>
         </div>
         <div className="text-right">
@@ -146,8 +179,8 @@ export const CompatibilityScore = ({ result }: CompatibilityScoreProps) => {
       <div className="h-3 bg-white rounded-full overflow-hidden mb-6">
         <div 
           className={`h-full transition-all duration-500 ${
-            scorePercent >= 70 ? 'bg-green-500' : 
-            scorePercent >= 45 ? 'bg-amber-500' : 'bg-red-500'
+            scorePercent >= 75 ? 'bg-green-500' : 
+            scorePercent >= 50 ? 'bg-amber-500' : 'bg-red-500'
           }`}
           style={{ width: `${scorePercent}%` }}
         />
@@ -187,6 +220,27 @@ export const CompatibilityScore = ({ result }: CompatibilityScoreProps) => {
         </div>
       )}
 
+      {/* Unknowns - incitation à compléter le profil */}
+      {unknowns.length > 0 && (
+        <div className="bg-gray-100 border border-gray-200 rounded-xl p-4 mb-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Building2 className="w-5 h-5 text-gray-600" />
+            <span className="font-medium text-gray-800">
+              {unknowns.length} critère{unknowns.length > 1 ? 's' : ''} non évalué{unknowns.length > 1 ? 's' : ''}
+            </span>
+          </div>
+          <p className="text-sm text-gray-600 mb-2">
+            Complétez votre profil pour améliorer la précision du score.
+          </p>
+          <Link 
+            to="/settings"
+            className="text-sm text-primary hover:underline"
+          >
+            → Compléter mon profil
+          </Link>
+        </div>
+      )}
+
       {/* Détail des critères */}
       <div className="space-y-3">
         {matches.map((match, index) => (
@@ -211,28 +265,35 @@ export const CompatibilityScore = ({ result }: CompatibilityScoreProps) => {
 function calculateMatches(result: AnalysisResult, subscription: any): MatchResult[] {
   const matches: MatchResult[] = [];
 
-  // 1. Chiffre d'affaires
+  // 1. Chiffre d'affaires (20 points)
   const revenueMatch = checkRevenue(
     subscription?.company_revenue,
     result.goNoGoCriteria.minRevenue
   );
   matches.push(revenueMatch);
 
-  // 2. Certifications
+  // 2. Certifications (20 points)
   const certMatch = checkCertifications(
     subscription?.company_certifications || [],
     result.goNoGoCriteria.certifications
   );
   matches.push(certMatch);
 
-  // 3. Technologies
+  // 3. Références (20 points) - NOUVEAU
+  const refMatch = checkReferences(
+    subscription?.company_references,
+    result.goNoGoCriteria.references
+  );
+  matches.push(refMatch);
+
+  // 4. Technologies (25 points)
   const techMatch = checkTechnologies(
     subscription?.company_technologies || [],
     result.technologies
   );
   matches.push(techMatch);
 
-  // 4. Présence physique / Localisation
+  // 5. Présence physique / Localisation (15 points)
   const locationMatch = checkLocation(
     subscription?.company_location,
     result.goNoGoCriteria.physicalPresence
@@ -243,7 +304,7 @@ function calculateMatches(result: AnalysisResult, subscription: any): MatchResul
 }
 
 function checkRevenue(companyRevenue: string | null, required: string): MatchResult {
-  const maxPoints = 25;
+  const maxPoints = 20;
   
   // Si pas d'exigence de CA → 100% sur ce critère
   if (isNoRequirement(required)) {
@@ -261,7 +322,7 @@ function checkRevenue(companyRevenue: string | null, required: string): MatchRes
       category: 'Chiffre d\'affaires',
       status: 'unknown',
       detail: 'CA entreprise non renseigné',
-      points: Math.round(maxPoints * 0.5), // Score neutre au lieu de 0
+      points: Math.round(maxPoints * 0.5),
       maxPoints
     };
   }
@@ -274,19 +335,19 @@ function checkRevenue(companyRevenue: string | null, required: string): MatchRes
     return {
       category: 'Chiffre d\'affaires',
       status: 'match',
-      detail: `Votre CA correspond (${required})`,
+      detail: `CA suffisant ✓`,
       points: maxPoints,
       maxPoints
     };
   }
 
-  // Partial si on est proche (>50% du requis)
-  if (companyAmount >= requiredAmount * 0.5) {
+  // Partial si on est proche (>60% du requis)
+  if (companyAmount >= requiredAmount * 0.6) {
     return {
       category: 'Chiffre d\'affaires',
       status: 'partial',
       detail: `CA requis: ${required} (proche)`,
-      points: Math.round(maxPoints * 0.5),
+      points: Math.round(maxPoints * 0.6),
       maxPoints
     };
   }
@@ -295,13 +356,13 @@ function checkRevenue(companyRevenue: string | null, required: string): MatchRes
     category: 'Chiffre d\'affaires',
     status: 'missing',
     detail: `CA requis: ${required}`,
-    points: 0,
+    points: Math.round(maxPoints * 0.2),
     maxPoints
   };
 }
 
 function checkCertifications(companyCerts: string[], required: string): MatchResult {
-  const maxPoints = 25;
+  const maxPoints = 20;
   
   // Si pas d'exigence de certifications → 100% sur ce critère
   if (isNoRequirement(required)) {
@@ -318,8 +379,8 @@ function checkCertifications(companyCerts: string[], required: string): MatchRes
     return {
       category: 'Certifications',
       status: 'unknown',
-      detail: 'Certifications entreprise non renseignées',
-      points: Math.round(maxPoints * 0.4), // Score neutre
+      detail: 'Certifications non renseignées',
+      points: Math.round(maxPoints * 0.4),
       maxPoints
     };
   }
@@ -346,7 +407,7 @@ function checkCertifications(companyCerts: string[], required: string): MatchRes
     return {
       category: 'Certifications',
       status: 'match',
-      detail: 'Toutes les certifications présentes',
+      detail: 'Toutes les certifications ✓',
       points: maxPoints,
       maxPoints
     };
@@ -367,14 +428,73 @@ function checkCertifications(companyCerts: string[], required: string): MatchRes
   return {
     category: 'Certifications',
     status: 'missing',
-    detail: `Certifications manquantes: ${required}`,
+    detail: `Manquantes: ${required}`,
     points: 0,
     maxPoints
   };
 }
 
+// NOUVEAU : Vérification des références
+function checkReferences(companyRefs: string | null, required: string): MatchResult {
+  const maxPoints = 20;
+  
+  // Si pas d'exigence de références → 100% sur ce critère
+  if (isNoRequirement(required)) {
+    return {
+      category: 'Références',
+      status: 'match',
+      detail: 'Aucune référence exigée',
+      points: maxPoints,
+      maxPoints
+    };
+  }
+
+  if (!companyRefs) {
+    return {
+      category: 'Références',
+      status: 'unknown',
+      detail: 'Références non renseignées',
+      points: Math.round(maxPoints * 0.4),
+      maxPoints
+    };
+  }
+
+  // Extraire le nombre de références requises
+  const requiredCount = extractReferencesCount(required);
+  const companyCount = getReferencesCount(companyRefs);
+
+  if (companyCount >= requiredCount) {
+    return {
+      category: 'Références',
+      status: 'match',
+      detail: `Références suffisantes ✓`,
+      points: maxPoints,
+      maxPoints
+    };
+  }
+
+  // Partial si on a au moins 50%
+  if (companyCount >= requiredCount * 0.5) {
+    return {
+      category: 'Références',
+      status: 'partial',
+      detail: `${companyCount} réf. (requis: ${requiredCount})`,
+      points: Math.round(maxPoints * 0.6),
+      maxPoints
+    };
+  }
+
+  return {
+    category: 'Références',
+    status: 'missing',
+    detail: `Requis: ${required}`,
+    points: Math.round(maxPoints * 0.2),
+    maxPoints
+  };
+}
+
 function checkTechnologies(companyTech: string[], required: string[]): MatchResult {
-  const maxPoints = 30;
+  const maxPoints = 25;
   
   // Si pas de technologie requise → 100% sur ce critère
   if (!required || required.length === 0) {
@@ -404,8 +524,8 @@ function checkTechnologies(companyTech: string[], required: string[]): MatchResu
     return {
       category: 'Technologies',
       status: 'unknown',
-      detail: 'Technologies entreprise non renseignées',
-      points: Math.round(maxPoints * 0.4), // Score neutre
+      detail: 'Technologies non renseignées',
+      points: Math.round(maxPoints * 0.4),
       maxPoints
     };
   }
@@ -429,7 +549,7 @@ function checkTechnologies(companyTech: string[], required: string[]): MatchResu
     return {
       category: 'Technologies',
       status: 'match',
-      detail: `${matched.length}/${filteredRequired.length} technologies maîtrisées`,
+      detail: `${matched.length}/${filteredRequired.length} technologies ✓`,
       points,
       maxPoints
     };
@@ -439,7 +559,7 @@ function checkTechnologies(companyTech: string[], required: string[]): MatchResu
     return {
       category: 'Technologies',
       status: 'partial',
-      detail: `${matched.length}/${filteredRequired.length} technologies maîtrisées`,
+      detail: `${matched.length}/${filteredRequired.length} technologies`,
       points,
       maxPoints
     };
@@ -448,14 +568,14 @@ function checkTechnologies(companyTech: string[], required: string[]): MatchResu
   return {
     category: 'Technologies',
     status: 'missing',
-    detail: `Seulement ${matched.length}/${filteredRequired.length} technologies`,
+    detail: `${matched.length}/${filteredRequired.length} technologies`,
     points,
     maxPoints
   };
 }
 
 function checkLocation(companyLocation: string | null, required: string): MatchResult {
-  const maxPoints = 20;
+  const maxPoints = 15;
   
   // Si pas d'exigence de présence → 100% sur ce critère
   if (isNoRequirement(required)) {
@@ -472,35 +592,35 @@ function checkLocation(companyLocation: string | null, required: string): MatchR
     return {
       category: 'Présence géographique',
       status: 'partial',
-      detail: 'Zone d\'intervention non renseignée',
-      points: Math.round(maxPoints * 0.6), // Score neutre-positif
+      detail: 'Zone non renseignée',
+      points: Math.round(maxPoints * 0.6),
       maxPoints
     };
   }
 
-  // Si l'entreprise couvre toute la France et que c'est un AO français
+  // Si l'entreprise couvre toute la France
   const companyLower = companyLocation.toLowerCase();
-  const requiredLower = required.toLowerCase();
   
-  if (companyLower.includes('france') || companyLower.includes('national')) {
+  if (companyLower === 'france' || companyLower === 'international' || companyLower === 'europe') {
     return {
       category: 'Présence géographique',
       status: 'match',
-      detail: 'Couverture nationale',
+      detail: 'Couverture nationale ✓',
       points: maxPoints,
       maxPoints
     };
   }
 
   // Vérifier si la région correspond
-  const regions = ['île-de-france', 'bretagne', 'normandie', 'paca', 'occitanie', 'auvergne', 'hauts-de-france'];
+  const requiredLower = required.toLowerCase();
+  const regions = ['île-de-france', 'bretagne', 'normandie', 'paca', 'occitanie', 'auvergne', 'hauts-de-france', 'grand-est', 'nouvelle-aquitaine', 'pays de la loire'];
   const matchingRegion = regions.some(r => companyLower.includes(r) && requiredLower.includes(r));
   
   if (matchingRegion) {
     return {
       category: 'Présence géographique',
       status: 'match',
-      detail: 'Zone géographique compatible',
+      detail: 'Zone compatible ✓',
       points: maxPoints,
       maxPoints
     };
@@ -538,6 +658,36 @@ function getRevenueAmount(range: string): number {
     '1m-5m': 5000000,
     '5m-10m': 10000000,
     '10m+': 50000000
+  };
+  return ranges[range] || 0;
+}
+
+// NOUVEAU : Extraction du nombre de références requises
+function extractReferencesCount(text: string): number {
+  if (!text) return 0;
+  
+  // Chercher des patterns comme "3 références", "au moins 5", "minimum 2"
+  const match = text.match(/(\d+)\s*(références?|projets?|réalisations?)?/i);
+  if (match) {
+    return parseInt(match[1]);
+  }
+  
+  // Patterns textuels
+  if (text.toLowerCase().includes('plusieurs')) return 3;
+  if (text.toLowerCase().includes('quelques')) return 2;
+  
+  return 1; // Par défaut si mention vague
+}
+
+// NOUVEAU : Conversion des références de l'entreprise
+function getReferencesCount(range: string): number {
+  const ranges: Record<string, number> = {
+    '0': 0,
+    '1-2': 2,
+    '3-5': 5,
+    '6-10': 10,
+    '10-20': 20,
+    '20+': 30
   };
   return ranges[range] || 0;
 }
